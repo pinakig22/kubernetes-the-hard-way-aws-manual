@@ -1,12 +1,12 @@
 # Provisioning Resources
 ## Table of Contents
-- [Pre-requisites](Pre-requisites)
-- [Networking]()
-  - [VPC]
-  - [Subnets]
-  - [Security Groups]
-- [Compute Instances]()
-- [Connect to instance]()
+- [Pre-requisites](#pre-requisites)
+- [Networking](#networking)
+  - [VPC](#virtual-private-cloud)
+  - [Subnets](#subnets)
+  - [Security Groups](#security-groups)
+- [Compute Instances](#ec2-compute-resources)
+- [Connect to instance](#connect-to-ec2-instance)
 
 
 We will need to provision the following resources in AWS:
@@ -55,6 +55,7 @@ aws ec2 create-tags --resources ${VPC_ID} --tags Key=Name,Value=kthw-vpc
 aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-support '{"Value": true}'
 aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-hostnames '{"Value": true}'
 ```
+## Subnets
 
 ```bash
 ## Create Private Subnet
@@ -115,4 +116,6 @@ We will create three EC2 instances which will host the Kubernetes control plane.
 Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. The pod subnet allocation will be used to configure container networking in a later exercise. The pod-cidr instance metadata will be used to expose pod subnet allocations to compute instances at runtime.
 
 > The Kubernetes cluster CIDR range is defined by the Controller Manager's (`kube-controller-manager`) `--cluster-cidr` flag. In this tutorial the cluster CIDR range will be set to 10.200.0.0/16. This will be used for POD IP Addressing.
+
+## Connect to EC2 Instance
 
