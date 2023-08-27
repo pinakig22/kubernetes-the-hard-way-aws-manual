@@ -26,18 +26,71 @@ We will be using Terraform to create the VPC which is recommended way to avoid m
 
 > Default VPC is present in AWS which can also be used for simplicity.
 
-To create AWS VPC refer to AWS Guide [Create a VPC](https://docs.aws.amazon.com/vpc/latest/userguide/create-vpc.html). Below are the configuration options used:
+To create AWS VPC via console refer to AWS Guide [Create a VPC](https://docs.aws.amazon.com/vpc/latest/userguide/create-vpc.html). Below are the configuration options used:
 
-| **Configuration**                  | **Value**       |
-|:-----------------------------------|:----------------|
-| Availability Zones                 | `ap-south-1`    |
-| IPv4 CIDR block                    | `10.0.0.0/16`   |
-| IPv6 CIDR block                    | Skip            |
-| DNS options                        | Enable both (Default) |
-| Internet Gateway                   | NO              | 
-| Name                               | kthw-vpc        |
-| NAT gateways                       | Yes             |
-| Tenancy                            | Default         |
-| Number of Availability Zones (AZs) | 3               |
-| Number of public & private subnets | 3 & 3           |
-|choose the number of AZs in which to create NAT gateways| in each AZ|
+| **Configuration**                                        | **Value**             |
+|:---------------------------------------------------------|:----------------------|
+| Availability Zones                                       | `ap-south-1`          |
+| IPv4 CIDR block                                          | `10.0.0.0/16`         |
+| IPv6 CIDR block                                          | Skip                  |
+| DNS options                                              | Enable both (Default) |
+| Internet Gateway                                         | NO                    | 
+| Name                                                     | kthw-vpc              |
+| NAT gateways                                             | Yes                   |
+| Tenancy                                                  | Default               |
+| Number of Availability Zones (AZs)                       | 3                     |
+| Number of public & private subnets                       | 1 public & 3 private  |
+| Choose the number of AZs in which to create NAT gateways | 1                     |
+
+#### To create via AWS CLI
+```bash
+## Create VPC ##
+
+VPC_ID=$(aws ec2 create-vpc --cidr-block 10.0.0.0/16 --output text --query 'Vpc.VpcId')
+aws ec2 create-tags --resources ${VPC_ID} --tags Key=Name,Value=kthw-vpc
+aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-support '{"Value": true}'
+aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-hostnames '{"Value": true}'
+```
+
+```bash
+## Create Private Subnet
+## By using this CIDR range 10.0.1.0/24 we have up to 251 hosts (AWS uses first 4 and last 1 IP)
+
+SUBNET_ID=$(aws ec2 create-subnet \
+  --vpc-id ${VPC_ID} \
+  --cidr-block 10.0.1.0/24 \
+  --output text --query 'Subnet.SubnetId')
+
+aws ec2 create-tags --resources ${SUBNET_ID} --tags Key=Name,Value=kthw-private-subnet
+```
+
+```bash
+## Create NAT Gateway
+## To enable instances in a private subnet to connect to the internet, you can create a NAT gateway
+
+##### TBC #####
+```
+
+## Security Groups
+Security Groups are needed to allow traffic between our instances, as well as access from client software. 
+We define rules for communication between the controllers (master node/control plane) and workers; SSH, Kubernetes API server, HTTPS and ICMP (for pings)
+
+```bash
+SECURITY_GROUP_ID=$(aws ec2 create-security-group \
+  --group-name kubernetes-from-scratch \
+  --description "Kubernetes the hard way SG" \
+  --vpc-id ${VPC_ID} \
+  --output text --query 'GroupId')
+
+aws ec2 create-tags --resources ${SECURITY_GROUP_ID} --tags Key=Name,Value=kthw-sg
+
+aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol all --cidr 10.0.0.0/16
+aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol all --cidr 10.200.0.0/16
+aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol tcp --port 22 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol tcp --port 6443 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol tcp --port 443 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol icmp --port -1 --cidr 0.0.0.0/0
+```
+
+## Application Load Balancer
+TBC
