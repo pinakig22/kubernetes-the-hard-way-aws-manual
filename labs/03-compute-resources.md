@@ -1,17 +1,21 @@
 # Provisioning Resources
-We will need to provision the following resources in AWS:
+## Table of Contents
+- [Pre-requisites](Pre-requisites)
+- [Networking]()
+  - [VPC]
+  - [Subnets]
+  - [Security Groups]
+- [Compute Instances]()
+- [Connect to instance]()
 
+
+We will need to provision the following resources in AWS:
 - **Networking**: VPC, Subnet, Internet Gateway (IGW), Route Tables, Security Groups, Load Balancer (ALB)
 - **Compute Instances**: EC2 nodes for master and worker nodes, & SSH Key Pairs.
 
 ## Pre-requisites
 - Have an AWS account setup. AWS provides Free Tier usage for 12 months for new accounts.
 - Install AWS CLI for interacting with AWS Account from local machine. (Refer to installation [details](https://github.com/pinakig22/kubernetes-the-hard-way-aws/blob/main/labs/02-client-tools.md#aws-cli) in previous step).
-
-## Compute Resources
-Kubernetes requires a set of machines to host the Kubernetes **control plane** (**master** node) and the **worker nodes** where containers are ultimately run.
-
-In this lab you will provision the compute resources required for running a secure and highly available Kubernetes cluster across a single [AWS Region with multiple Availability Zone](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html).
 
 ## Networking
 The Kubernetes [networking model](https://kubernetes.io/docs/concepts/cluster-administration/networking/#kubernetes-model) assumes a flat network in which containers and nodes can communicate with each other.
@@ -31,7 +35,7 @@ To create AWS VPC via console refer to AWS Guide [Create a VPC](https://docs.aws
 | **Configuration**                                        | **Value**             |
 |:---------------------------------------------------------|:----------------------|
 | Availability Zones                                       | `ap-south-1`          |
-| IPv4 CIDR block                                          | `10.0.0.0/16`         |
+| IPv4 CIDR block                                          | `10.0.0.0/24`         |
 | IPv6 CIDR block                                          | Skip                  |
 | DNS options                                              | Enable both (Default) |
 | Internet Gateway                                         | NO                    | 
@@ -46,7 +50,7 @@ To create AWS VPC via console refer to AWS Guide [Create a VPC](https://docs.aws
 ```bash
 ## Create VPC ##
 
-VPC_ID=$(aws ec2 create-vpc --cidr-block 10.0.0.0/16 --output text --query 'Vpc.VpcId')
+VPC_ID=$(aws ec2 create-vpc --cidr-block 10.0.0.0/24 --output text --query 'Vpc.VpcId')
 aws ec2 create-tags --resources ${VPC_ID} --tags Key=Name,Value=kthw-vpc
 aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-support '{"Value": true}'
 aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-hostnames '{"Value": true}'
@@ -84,7 +88,7 @@ SECURITY_GROUP_ID=$(aws ec2 create-security-group \
 
 aws ec2 create-tags --resources ${SECURITY_GROUP_ID} --tags Key=Name,Value=kthw-sg
 
-aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol all --cidr 10.0.0.0/16
+aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol all --cidr 10.0.0.0/24
 aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol all --cidr 10.200.0.0/16
 aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol tcp --port 22 --cidr 0.0.0.0/0
 aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --protocol tcp --port 6443 --cidr 0.0.0.0/0
@@ -94,3 +98,21 @@ aws ec2 authorize-security-group-ingress --group-id ${SECURITY_GROUP_ID} --proto
 
 ## Application Load Balancer
 TBC
+
+## EC2 (Compute Resources)
+Kubernetes requires a set of machines to host the Kubernetes **control plane** (**master** node) and the **worker nodes** where containers are ultimately run.
+
+In this lab you will provision the compute resources required for running a secure and highly available Kubernetes cluster across a multiple [Availability Zone with a AWS Region](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html). We are using `ap-south-1` for the demo.
+
+The compute instances in this lab will be provisioned using [Ubuntu Server](https://ubuntu.com/server) 20.04, which has good support for the [`containerd` container](https://github.com/containerd/containerd) runtime.
+
+Each EC2 instance will be provisioned with a **fixed** _private IP_ address to simplify the Kubernetes bootstrapping process.
+
+### Kubernetes Controllers
+We will create three EC2 instances which will host the Kubernetes control plane.
+
+### Kubernetes Workers
+Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. The pod subnet allocation will be used to configure container networking in a later exercise. The pod-cidr instance metadata will be used to expose pod subnet allocations to compute instances at runtime.
+
+> The Kubernetes cluster CIDR range is defined by the Controller Manager's (`kube-controller-manager`) `--cluster-cidr` flag. In this tutorial the cluster CIDR range will be set to 10.200.0.0/16. This will be used for POD IP Addressing.
+
