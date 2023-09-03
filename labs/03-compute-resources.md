@@ -17,6 +17,8 @@ We will need to provision the following resources in AWS:
 - Have an AWS account setup. AWS provides Free Tier usage for 12 months for new accounts.
 - Install AWS CLI for interacting with AWS Account from local machine. (Refer to installation [details](https://github.com/pinakig22/kubernetes-the-hard-way-aws/blob/main/labs/02-client-tools.md#aws-cli) in previous step).
 
+> The compute resources required for this tutorial exceed the AWS free tier.
+
 ## Networking
 The Kubernetes [networking model](https://kubernetes.io/docs/concepts/cluster-administration/networking/#kubernetes-model) assumes a flat network in which containers and nodes can communicate with each other.
 

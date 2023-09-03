@@ -33,3 +33,15 @@ This tutorial assumes you have access to the [AWS Cloud](https://aws.amazon.com/
 
 ## Kubernetes Documentation
 * [Kubernetes Documentation Home](https://kubernetes.io/docs/home/)
+
+## High Level Steps
+Following are the high-level steps involved in setting up a kubeadm-based Kubernetes cluster.
+1. Install container runtime on all nodes. (we will be using `containerd`)
+2. Install `kubeadm`, `kubelet`, and `kubectl` on all the nodes.
+3. Initiate `kubeadm` control plane configuration on the master node.
+4. Save the node join command with the token
+5. Install the Network Plugin (This is done using Routes in AWS Cloud)
+6. Join the worker node to the master node (control plane) using the join command.
+7. Validate all cluster components and nodes.
+8. Install Kubernetes Metrics Server
+9. Deploy a sample app and validate the app
