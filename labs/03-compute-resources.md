@@ -26,7 +26,7 @@ In cases where this is not desired [network policies](https://kubernetes.io/docs
 
 > Setting up network policies is out of scope for this tutorial.
 
-## Virtual Private Cloud
+## Virtual Private Cloud (VPC)
 In this section a dedicated [AWS VPC](https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html) will be setup to host the Kubernetes cluster.
 We will be using Terraform to create the VPC which is recommended way to avoid manual errors.
 
@@ -37,7 +37,7 @@ To create AWS VPC via console refer to AWS Guide [Create a VPC](https://docs.aws
 | **Configuration**                                        | **Value**             |
 |:---------------------------------------------------------|:----------------------|
 | Availability Zones                                       | `ap-south-1`          |
-| IPv4 CIDR block                                          | `10.0.0.0/24`         |
+| IPv4 CIDR block                                          | `10.0.0.0/16`         |
 | IPv6 CIDR block                                          | Skip                  |
 | DNS options                                              | Enable both (Default) |
 | Internet Gateway                                         | NO                    | 
@@ -57,8 +57,41 @@ aws ec2 create-tags --resources ${VPC_ID} --tags Key=Name,Value=kthw-vpc
 aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-support '{"Value": true}'
 aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-hostnames '{"Value": true}'
 ```
-## Subnets
-
+**Verify**
+```json
+$ aws ec2 describe-vpcs --filter Name=tag:Name,Values=kthw-vpc
+{
+    "Vpcs": [
+        {
+            "CidrBlock": "10.0.0.0/16",
+            "DhcpOptionsId": "dopt-0b262d82a1e5531a8",
+            "State": "available",
+            "VpcId": "vpc-00b117b7f7ea456b5",
+            "OwnerId": "492337326462",
+            "InstanceTenancy": "default",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": "vpc-cidr-assoc-0b313e314f1fa4982",
+                    "CidrBlock": "10.0.0.0/16",
+                    "CidrBlockState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "IsDefault": false,
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "kthw-vpc"
+                }
+            ]
+        }
+    ]
+}
+$
+```
+## Private Subnets
+We need to be able to assign private IP addresses to our compute instances for both the control plane controllers, as well as our worker instances. Subnets in our VPC allow us to create a range of IP addresses that we can allocate to our instances which do not allow external access (unless through a proxy or load balancer):
 ```bash
 ## Create Private Subnet
 ## By using this CIDR range 10.0.1.0/24 we have up to 251 hosts (AWS uses first 4 and last 1 IP)
@@ -70,12 +103,49 @@ SUBNET_ID=$(aws ec2 create-subnet \
 
 aws ec2 create-tags --resources ${SUBNET_ID} --tags Key=Name,Value=kthw-private-subnet
 ```
-
+**Verify**
+```json
+$ aws ec2 describe-subnets --filter Name=tag:Name,Values=kthw-private-subnet --output json
+{
+    "Subnets": [
+        {
+            "AvailabilityZone": "ap-south-1b",
+            "AvailabilityZoneId": "aps1-az3",
+            "AvailableIpAddressCount": 251,
+            "CidrBlock": "10.0.1.0/24",
+            "DefaultForAz": false,
+            "MapPublicIpOnLaunch": false,
+            "MapCustomerOwnedIpOnLaunch": false,
+            "State": "available",
+            "SubnetId": "subnet-09416171cfa3a8a81",
+            "VpcId": "vpc-00b117b7f7ea456b5",
+            "OwnerId": "492337326462",
+            "AssignIpv6AddressOnCreation": false,
+            "Ipv6CidrBlockAssociationSet": [],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "kthw-private-subnet"
+                }
+            ],
+            "SubnetArn": "arn:aws:ec2:ap-south-1:492337326462:subnet/subnet-09416171cfa3a8a81",
+            "EnableDns64": false,
+            "Ipv6Native": false,
+            "PrivateDnsNameOptionsOnLaunch": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            }
+        }
+    ]
+}
+$
+```
+## Internet Gateway
+Our instances need some way to connect and communicate with the internet since we are on a private network. This means we need to provision a gateway we can use to proxy our traffic through. Let’s setup one by running the following commands:
 ```bash
-## Create NAT Gateway
-## To enable instances in a private subnet to connect to the internet, you can create a NAT gateway
+### TBC ###
 
-##### TBC #####
 ```
 
 ## Security Groups
