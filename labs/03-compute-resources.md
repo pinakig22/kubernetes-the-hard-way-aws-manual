@@ -16,6 +16,13 @@ We will need to provision the following resources in AWS:
 ## Pre-requisites
 - Have an AWS account setup. AWS provides Free Tier usage for 12 months for new accounts.
 - Install AWS CLI for interacting with AWS Account from local machine. (Refer to installation [details](https://github.com/pinakig22/kubernetes-the-hard-way-aws/blob/main/labs/02-client-tools.md#aws-cli) in previous step).
+- Minimum two Ubuntu nodes [One master and one worker node]. You can have more worker nodes as per your requirement.
+  - **Master node** should have a **minimum** of `2vCPU` and `2GB` RAM.
+  - **Worker node** should have a **minimum** of `1vCPU` and `2GB` RAM.
+- `10.X.X.X/X` network range with **static IPs** for `master` and `worker` nodes.
+  - `192.x.x.x` series will be used as the **pod network range** using the _Calico network plugin_.
+  - It is important that _Node IP Range_ and _POD IP range_ **DO NOT OVERLAP**.
+- To setup `kubeadm` cluster on **cloud server** ports should be allowed in respective firewall configuration (Security Groups) and Subnets have routing rules enabled for the CIDR ranges used.
 
 > The compute resources required for this tutorial exceed the AWS free tier.
 
@@ -52,7 +59,7 @@ To create AWS VPC via console refer to AWS Guide [Create a VPC](https://docs.aws
 ```bash
 ## Create VPC ##
 
-VPC_ID=$(aws ec2 create-vpc --cidr-block 10.0.0.0/24 --output text --query 'Vpc.VpcId')
+VPC_ID=$(aws ec2 create-vpc --cidr-block 10.0.0.0/16 --output text --query 'Vpc.VpcId')
 aws ec2 create-tags --resources ${VPC_ID} --tags Key=Name,Value=kthw-vpc
 aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-support '{"Value": true}'
 aws ec2 modify-vpc-attribute --vpc-id ${VPC_ID} --enable-dns-hostnames '{"Value": true}'
@@ -91,7 +98,7 @@ $ aws ec2 describe-vpcs --filter Name=tag:Name,Values=kthw-vpc
 $
 ```
 ## Private Subnets
-We need to be able to assign private IP addresses to our compute instances for both the control plane controllers, as well as our worker instances. Subnets in our VPC allow us to create a range of IP addresses that we can allocate to our instances which do not allow external access (unless through a proxy or load balancer):
+We need to be able to assign **private IP** addresses to our compute instances for both the `control plane` controllers, as well as our `worker` instances. Subnets in our VPC allow us to create a range of IP addresses that we can allocate to our instances which do not allow external access (unless through a proxy or load balancer):
 ```bash
 ## Create Private Subnet
 ## By using this CIDR range 10.0.1.0/24 we have up to 251 hosts (AWS uses first 4 and last 1 IP)
@@ -177,7 +184,7 @@ Kubernetes requires a set of machines to host the Kubernetes **control plane** (
 
 In this lab you will provision the compute resources required for running a secure and highly available Kubernetes cluster across a multiple [Availability Zone with a AWS Region](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html). We are using `ap-south-1` for the demo.
 
-The compute instances in this lab will be provisioned using [Ubuntu Server](https://ubuntu.com/server) 20.04, which has good support for the [`containerd` container](https://github.com/containerd/containerd) runtime.
+The compute instances in this lab will be provisioned using [Ubuntu Server](https://ubuntu.com/server) 20.04.
 
 Each EC2 instance will be provisioned with a **fixed** _private IP_ address to simplify the Kubernetes bootstrapping process.
 

@@ -6,7 +6,7 @@ Kubernetes The Hard Way guides you through bootstrapping a highly available Kube
 
 * [Kubernetes](https://github.com/kubernetes/kubernetes) 1.24.3
 * [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/) 1.27.3
-* [Container Runtime - containerd](https://github.com/containerd/containerd) 1.5.9
+* [Container Runtime - cri-o](https://github.com/cri-o/cri-o/blob/main/install.md#readme) 1.5.9
 * [CNI Container Networking](https://github.com/containernetworking/cni) 0.9.1
 * [Weave Networking (addon)](https://www.weave.works/docs/net/latest/kubernetes/kube-addon/)
 * [etcd](https://github.com/coreos/etcd) v3.5.3
